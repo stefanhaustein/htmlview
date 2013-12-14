@@ -8,7 +8,7 @@ public interface StylableElement {
 
   String getName();
 
-  // TODO: Remove here.
+  // TODO: Remove here?
   boolean isLink();
 
   Iterator<? extends StylableElement> getChildElementIterator();

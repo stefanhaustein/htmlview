@@ -21,7 +21,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.View;
 
 
@@ -97,8 +96,6 @@ class TextFragmentView extends View implements HasMeasuredPosition {
     firstLineYOffset = 0;
     mainYOffset = 0;
     lastLineYOffset = 0;
-    
-    long cacheKey = borders.getCacheKey();
     
     BlockElementView parent = (BlockElementView) getParent();
 
@@ -190,7 +187,6 @@ class TextFragmentView extends View implements HasMeasuredPosition {
     int dx = 0;
     int dy = 0;
 
-    Style style = element.getComputedStyle();
     Paint font = getFont();
     
     if (isFocused() && !element.isFocused()) {

@@ -15,12 +15,9 @@
 package org.kobjects.htmlview;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import android.graphics.Paint;
-import android.util.Log;
-import android.util.SparseIntArray;
 
 /**
  * A set of simple static utility methods for CLDC.
@@ -117,41 +114,20 @@ class HtmlUtils {
     }
   }
 
-  private static class FastShortArray {
-    short[] data = new short[128];
-    FastShortArray() {
-      Arrays.fill(data, (short)-1);
-    }
-    
-    private int get(int i) {
-      return i < data.length ? data [i] : -1;
-    }
-    
-    private void put(int i, int v) {
-      if (i >= data.length) {
-        int newLen = data.length * 2;
-        while (newLen <= i) {
-          newLen *= 2;
-        }
-        short[] newData = new short[newLen];
-        Arrays.fill(newData, data.length, newLen, (short) -1);
-        System.arraycopy(data, 0, newData, 0, data.length);
-        data = newData;
-        Log.d("HtmlView", "allocated " + newData.length * 2);
-      }
-      data[i] = (short) v;
-    }
-  }
-  
-  private static FastShortArray widthCache = new FastShortArray();
-  private static HashMap<Paint,FastShortArray> widthCacheMap = new HashMap<Paint,FastShortArray>();
+  /** 
+   * We use a string builder as short array here. The cache is needed because measureText
+   * is extremely slow on some devices.
+   */
+  private static StringBuilder widthCache;
+  private static HashMap<Paint,StringBuilder> widthCacheMap = 
+      new HashMap<Paint,StringBuilder>();
   private static Paint lastFont;
   
   static int measureText(Paint font, String text, int start, int end) {
     if (font != lastFont) {
       widthCache = widthCacheMap.get(font);
       if (widthCache == null) {
-        widthCache = new FastShortArray();
+        widthCache = new StringBuilder();
         widthCacheMap.put(font, widthCache);
       }
       lastFont = font;
@@ -160,10 +136,13 @@ class HtmlUtils {
     int w = 0;
     for (int i = start; i < end; i++) {
       char c = text.charAt(i);
-      int cw = widthCache.get(c);
+      if (c >= widthCache.length()) {
+        widthCache.setLength(c + 1);
+      }
+      int cw = widthCache.charAt(c) - 1;
       if (cw == -1) {
         cw = (int) font.measureText(text, i, i + 1);
-        widthCache.put(c, cw);
+        widthCache.setCharAt(c, (char) (cw + 1));
       }
       w += cw;
     }

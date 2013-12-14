@@ -20,11 +20,11 @@ import org.kobjects.css.Style;
 /**
  * Keeps track of context information (the current left and right borders, 
  * y-position, horizontal and vertical alignment) while elements are laid out.
- * Note that for flow elements, the borders may become complex. 
+ * Note that for flow elements, the borders may become quite complex.
  * 
  * @author Stefan Haustein
  */
-public class LayoutContext {
+class LayoutContext {
 
   /**
    * The border structure resulting from adding flow elements, stored as 
@@ -91,25 +91,12 @@ public class LayoutContext {
     rightBorderX = leftBorderX + maxWidth;
   }
 
-  public long getCacheKey() {
-    if (borders.length() != 0) {
-      return -1;
-    }
-    return currentY + maxWidth * 1000 + lineHeight * 12345 + leftBorderX * 567890 + rightBorderX * 6789012;
-  }
-  
-  
   /** 
    * Returns the horizontal space available for the given maximum width and 
    * required height. If the required height is smaller than the current line 
    * height, the line height is assumed as the required height.
-   * 
-   * @param borders borders that need to be taken into account
-   * @param maxWidth maximum width available (below borders)
-   * @param requiredHeight height of the component to be placed
-   * @return available horizontal space
    */ 
-  public int getHorizontalSpace(int requiredHeight) {
+  int getHorizontalSpace(int requiredHeight) {
 
     if (requiredHeight < lineHeight) {
       requiredHeight = lineHeight;
@@ -138,7 +125,7 @@ public class LayoutContext {
    * 
    * @param h the number of pixels to advance.
    */
-  public void advance(int h) {
+  void advance(int h) {
     currentY += h;
     lineHeight = 0;
 
@@ -157,7 +144,7 @@ public class LayoutContext {
     //    Assert.assertEquals(0, borders.length() % 3);
   }
 
-  public int getMaxWidth() {
+  int getMaxWidth() {
     return maxWidth;
   }
   
@@ -176,7 +163,7 @@ public class LayoutContext {
    *        left, right or both borders are clear (free of floating elements);
    *        one of Syle.LEFT, Style.RIGHT, Style.BOTH or Style.NONE.       
    */
-  public void placeBox(int boxW, int boxH, int floatTo, int clear) {
+  void placeBox(int boxW, int boxH, int floatTo, int clear) {
     // for non-floating boxes, set both the box height and line height to the
     // maximum of the box and line height 
     if (floatTo != Style.LEFT && floatTo != Style.RIGHT) {
@@ -280,7 +267,7 @@ public class LayoutContext {
    * @param clear one of Style.LEFT. Style.RIGHT, Style.BOTH or Style.NONE
    * @return true if the current y-position was changed.
    */
-  public boolean clear(int clear) {
+  boolean clear(int clear) {
     if (clear != Style.LEFT && clear != Style.RIGHT && clear != Style.BOTH) {
       return false;
     }
@@ -295,54 +282,56 @@ public class LayoutContext {
   /**
    * Dumps internal data structures for debugging purposes.
    */
-  public void dump() {
-    System.out.println("currentY: " + currentY + " maxWidth: " + maxWidth);
+  public String toString() {
+    StringBuilder sb = new StringBuilder(
+        "LyaoutContext currentY: " + currentY + " maxWidth: " + maxWidth);
     for (int i = 0; i < borders.length(); i += 3) {
-      System.out.println(" " + i / 3 + "; x1: " + (int) borders.charAt(i) + 
+      sb.append(" " + i / 3 + "; x1: " + (int) borders.charAt(i) + 
           " x2: " + (int) borders.charAt(i + 1) + " h: " + 
           (int) borders.charAt(i + 2));
     }
+    return sb.toString();
   }
 
   /**
    * Returns the x-coordinate of the last box placed via placeBox();
    */
-  public int getBoxX() {
+  int getBoxX() {
     return boxX;
   }
 
   /**
    * Returns the y-coordinate of the last box placed via placeBox();
    */
-  public int getBoxY() {
+  int getBoxY() {
     return boxY;
   }
 
   /**
    * Returns the current line height.
    */
-  public int getLineHeight() {
+  int getLineHeight() {
     return lineHeight;
   }
 
   /** 
    * Returns the current y-position. 
    */
-  public int getCurrentY() {
+  int getCurrentY() {
     return currentY;
   }
 
   /**
    * Returns the borders data structure for testing purposes.
    */
-  public StringBuilder getBordersForTest() {
+  StringBuilder getBordersForTest() {
     return borders;
   }
 
   /**
    * Sets the current line height.
    */
-  public void setLineHeight(int lineHeight) {
+  void setLineHeight(int lineHeight) {
     this.lineHeight = lineHeight;
   }
 
@@ -351,7 +340,7 @@ public class LayoutContext {
    * Used to correct the y-position after handing the borders over to the 
    * layout context of a child element.
    */
-  public void adjustCurrentY(int delta) {
+  void adjustCurrentY(int delta) {
     this.currentY += delta;
   }
 
@@ -360,7 +349,7 @@ public class LayoutContext {
    * the horizontal alignment for the style of this layout context. This is
    * 0 for left align, space/2 for center align and space for right align.
    */
-  public int getAdjustmentX(int space) {
+  int getAdjustmentX(int space) {
     switch (style.getEnum(Style.TEXT_ALIGN)) {
       case Style.CENTER:
         return space / 2;
@@ -376,7 +365,7 @@ public class LayoutContext {
    * the vertical alignment for the style of this layout context. This is
    * 0 for top align, space/2 for center align and space for bottom align.
    */
-  public int getAdjustmentY(int space) {
+  int getAdjustmentY(int space) {
     switch (style.getEnum(Style.VERTICAL_ALIGN)) {
       case Style.TOP:
         return 0;

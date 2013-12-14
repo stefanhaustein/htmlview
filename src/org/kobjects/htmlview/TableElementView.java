@@ -131,7 +131,7 @@ class TableElementView extends AbstractElementView {
 
     if (shrinkWrap) {
       maxInnerWidth = getMaximumWidth(containerWidth);
-    } else if (style.lengthIsFixedOrPercent(Style.WIDTH)){
+    } else if (style.isLengthFixedOrPercent(Style.WIDTH)){
       maxInnerWidth = element.getScaledPx(Style.WIDTH, containerWidth);
       minInnerWidth = maxInnerWidth;
     } else {
@@ -213,7 +213,7 @@ class TableElementView extends AbstractElementView {
         maxWidths[column] = Math.max(maxWidths[column], 
             cell.getMaximumWidth(maxInnerWidth));
         Style cellStyle = cell.element.getComputedStyle();
-        isFixed[column] |= cellStyle.lengthIsFixed(Style.WIDTH);
+        isFixed[column] |= cellStyle.isLengthFixed(Style.WIDTH);
        // ||(cellStyle.lengthIsFixed(Style.WIDTH, true) && specWidths[column] 
        //< minWidths[column]); 
       }
@@ -312,7 +312,7 @@ class TableElementView extends AbstractElementView {
     }
     
     // if the table has a fixed width, force column widths wider if necessary.
-    if (style.lengthIsFixedOrPercent(Style.WIDTH) && maxSum > 0 && 
+    if (style.isLengthFixedOrPercent(Style.WIDTH) && maxSum > 0 && 
         maxInnerWidth > actualWidth) {
       if (fixedCount == colCount) {
         fixedCount = 0;

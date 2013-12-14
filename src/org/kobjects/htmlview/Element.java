@@ -774,8 +774,8 @@ public class Element implements org.kobjects.css.StylableElement {
     if (this.fontCache == null) {
       this.fontCache = new Paint();
       this.fontCache.setTextSize(getScaledPx(Style.FONT_SIZE));
-      int style = computedStyle.getValue(Style.FONT_WEIGHT) >= Style.BOLD ? Typeface.BOLD : Typeface.NORMAL;
-      switch (computedStyle.getValue(Style.FONT_STYLE)) {
+      int style = computedStyle.getRaw(Style.FONT_WEIGHT) >= Style.BOLD ? Typeface.BOLD : Typeface.NORMAL;
+      switch (computedStyle.getEnum(Style.FONT_STYLE)) {
       case Style.ITALIC: 
         style |= Typeface.ITALIC;
         break;
@@ -784,8 +784,9 @@ public class Element implements org.kobjects.css.StylableElement {
         break;
       }
       Typeface typeface = Typeface.DEFAULT;
-      if (computedStyle.fontFamily != null) {
-        String s = CssUtils.identifierToLowerCase(computedStyle.fontFamily);
+      String fontFamily = computedStyle.getString(Style.FONT_FAMILY);
+      if (fontFamily != null) {
+        String s = CssUtils.identifierToLowerCase(fontFamily);
         if (s.indexOf("monospace") != -1) {
           typeface = Typeface.MONOSPACE;
         } else if (s.indexOf("serif") != -1) {
@@ -794,7 +795,7 @@ public class Element implements org.kobjects.css.StylableElement {
         Log.d("font", "css typeface: " + s + " result: " + typeface.toString());
       }
       this.fontCache.setTypeface(style == 0 ? typeface : Typeface.create(typeface, style));
-      this.fontCache.setColor(computedStyle.getValue(Style.COLOR));
+      this.fontCache.setColor(computedStyle.getColor(Style.COLOR));
     }
     return this.fontCache;
   }
@@ -806,7 +807,7 @@ public class Element implements org.kobjects.css.StylableElement {
   
   public Paint getBackgroundPaint() {
     if (backgroundCache == null) {
-      int color = computedStyle.getValue(Style.BACKGROUND_COLOR);
+      int color = computedStyle.getColor(Style.BACKGROUND_COLOR);
       if ((color & 0x0ff000000) != 0) {
         backgroundCache = new Paint();
         backgroundCache.setStyle(android.graphics.Paint.Style.FILL);

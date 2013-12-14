@@ -2,10 +2,10 @@ package org.kobjects.htmlview;
 
 import org.kobjects.css.Style;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.text.InputType;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
@@ -17,11 +17,10 @@ import android.widget.RadioButton;
 /**
  * Wraps a "regular" android view with HTML margins, padding and borders. 
  */
-public class WrapperView extends AbstractElementView {
+@SuppressLint("ViewConstructor")
+class WrapperView extends AbstractElementView {
 
   private View content;
-  private int wrappedDesiredWidthCache = -1;
-  private int wrappedDesiredHeightCache = -1;
 
   static WrapperView createImg(Context context, Element child) {
     // TODO: Focus / click handling for buttons in a link?
@@ -88,12 +87,10 @@ public class WrapperView extends AbstractElementView {
   void measureBlock(int outerMaxWidth, int viewportWidth,
       LayoutContext parentLayoutContext, boolean shrinkWrap) {
     Style style = element.getComputedStyle();
-    boolean fixedWidth = style.lengthIsFixedOrPercent(Style.WIDTH);
+    boolean fixedWidth = style.isLengthFixedOrPercent(Style.WIDTH);
     boolean fixedHeight = isHeightFixed();
     if (!(fixedHeight && fixedWidth)) {
       content.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
-      wrappedDesiredHeightCache = content.getMeasuredHeight();
-      wrappedDesiredWidthCache = content.getMeasuredWidth();
     }
     int innerWidth = fixedWidth ? element.getScaledPx(Style.WIDTH, outerMaxWidth) 
         : content.getMeasuredWidth();
@@ -131,7 +128,7 @@ public class WrapperView extends AbstractElementView {
     
     Style style = element.getComputedStyle();
     int innerWidth;
-    if (style.lengthIsFixedOrPercent(Style.WIDTH)) {
+    if (style.isLengthFixedOrPercent(Style.WIDTH)) {
       innerWidth = element.getScaledPx(Style.WIDTH, containerWidth);
     } else {
       content.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
@@ -141,18 +138,4 @@ public class WrapperView extends AbstractElementView {
     widthValid = true;
   }
 
-  /*
-   * Does not propagate if the wrapped desired size does not change.
-  public void requestLayout() {
-    if (wrappedDesiredHeightCache != -1 && content != null) {
-      content.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
-      if (wrappedDesiredHeightCache != content.getMeasuredHeight() ||
-          wrappedDesiredWidthCache != content.getMeasuredWidth()) {
-        Log.d("HtmlView", "cache: " + wrappedDesiredWidthCache  + "/" + wrappedDesiredHeightCache + " measured: " + 
-            content.getMeasuredHeight() + "/" + content.getMeasuredWidth());
-        super.requestLayout();
-      }
-    }
-  }
-   */
 }

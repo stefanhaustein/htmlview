@@ -6,11 +6,8 @@ import org.kobjects.css.Style;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Paint;
 import android.view.View;
-import android.widget.EditText;
-import android.widget.ImageView;
 
 @SuppressLint("ViewConstructor")
 class BlockElementView extends AbstractElementView {
@@ -274,7 +271,7 @@ class BlockElementView extends AbstractElementView {
     int maxW;
     int currentLineWidth = 0;
 
-    if (display != Style.TABLE_CELL && style.lengthIsFixedOrPercent(Style.WIDTH)) {
+    if (display != Style.TABLE_CELL && style.isLengthFixedOrPercent(Style.WIDTH)) {
       minW = maxW = element.getScaledPx(Style.WIDTH, containerWidth);
     } else {
       maxW = minW = element.getScaledPx(Style.WIDTH);
@@ -389,13 +386,13 @@ class BlockElementView extends AbstractElementView {
     // ShrinkWrap means we need to calculate the width based on the contents
     // for floats, table entries etc. without a fixed width
     if (shrinkWrap) {
-      outerMaxWidth = style.lengthIsFixedOrPercent(Style.WIDTH)
+      outerMaxWidth = style.isLengthFixedOrPercent(Style.WIDTH)
           ? element.getScaledPx(Style.WIDTH, outerMaxWidth) + left + right
           : Math.min(outerMaxWidth, getMaximumWidth(containingWidth));
       // Otherwise, if this is not a table cell and the width is fixed, we need 
       // to calculate the value for auto margins here (This is typically used 
       // to center the contents).
-    } else if (display != Style.TABLE_CELL && style.lengthIsFixedOrPercent(Style.WIDTH)) {
+    } else if (display != Style.TABLE_CELL && style.isLengthFixedOrPercent(Style.WIDTH)) {
       int remaining = containingWidth - element.getScaledPx(Style.WIDTH, containingWidth) - 
             left - right;
 

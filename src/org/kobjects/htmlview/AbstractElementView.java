@@ -15,7 +15,6 @@
 package org.kobjects.htmlview;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -119,10 +118,10 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
    * determined by the content.
    */
   boolean isHeightFixed() {
-    if (element.getComputedStyle().lengthIsFixed(Style.HEIGHT)) {
+    if (element.getComputedStyle().isLengthFixed(Style.HEIGHT)) {
       return true;
     } 
-    if (!element.getComputedStyle().lengthIsFixedOrPercent(Style.HEIGHT) || 
+    if (!element.getComputedStyle().isLengthFixedOrPercent(Style.HEIGHT) || 
         !(getParent() instanceof AbstractElementView)) {
       return false;
     }  
@@ -132,7 +131,7 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
 
   int getFixedInnerHeight() {
     Style style = element.getComputedStyle();
-    if (style.lengthIsFixed(Style.HEIGHT)) {
+    if (style.isLengthFixed(Style.HEIGHT)) {
       return element.getScaledPx(Style.HEIGHT);
     }
     return element.getScaledPx(Style.HEIGHT, ((AbstractElementView) getParent()).getFixedInnerHeight());
@@ -343,7 +342,7 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
 
     // TODO: Avoid alloc
     if (borderTop > 0) {
-      borderPaint.setColor(style.getValue(Style.BORDER_TOP_COLOR));
+      borderPaint.setColor(style.getColor(Style.BORDER_TOP_COLOR));
       int dLeft = (borderLeft << 8) / borderTop;
       int dRight = (borderRight << 8) / borderTop;
       for (int i = 0; i < borderTop; i++) {
@@ -351,7 +350,7 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
       }
     }
     if (borderRight > 0) {
-      borderPaint.setColor(style.getValue(Style.BORDER_RIGHT_COLOR));
+      borderPaint.setColor(style.getColor(Style.BORDER_RIGHT_COLOR));
       int dTop = (borderTop << 8) / borderRight;
       int dBottom = (borderBottom << 8) / borderRight;
       for (int i = 0; i < borderRight; i++) {
@@ -359,7 +358,7 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
       }
     }
     if (borderBottom > 0) {
-      borderPaint.setColor(style.getValue(Style.BORDER_BOTTOM_COLOR));
+      borderPaint.setColor(style.getColor(Style.BORDER_BOTTOM_COLOR));
       int dLeft = (borderLeft << 8) / borderBottom;
       int dRight = (borderRight << 8) / borderBottom;
       for (int i = 0; i < borderBottom; i++) {
@@ -367,7 +366,7 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
       }
     }
     if (borderLeft > 0) {
-      borderPaint.setColor(style.getValue(Style.BORDER_LEFT_COLOR));
+      borderPaint.setColor(style.getColor(Style.BORDER_LEFT_COLOR));
       int dTop = (borderTop << 8) / borderLeft;
       int dBottom = (borderBottom << 8) / borderLeft;
       for (int i = 0; i < borderLeft; i++) {
@@ -381,7 +380,7 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
       int liy = y0 + 1 + element.getScaledPx(Style.PADDING_TOP, containingWidth);
 
       String label = "* ";
-      switch (style.getValue(Style.LIST_STYLE_TYPE)) {
+      switch (style.getEnum(Style.LIST_STYLE_TYPE)) {
         case Style.SQUARE:
           label = "\u25A0 ";
           break;

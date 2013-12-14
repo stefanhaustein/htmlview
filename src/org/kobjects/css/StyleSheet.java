@@ -593,7 +593,7 @@ public class StyleSheet {
         int index = queue.size();
         while (index > 0) {
           Style s = queue.get(index - 1);
-          if (s.compare(p) < 0) {
+          if (s.compareSpecificity(p) < 0) {
             break;
           }
           if (s == p) {

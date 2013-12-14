@@ -15,7 +15,7 @@
 package org.kobjects.css;
 
 import java.net.URI;
-import java.util.*;
+import java.util.HashMap;
 
 /**
  * Class for representing a set of CSS properties (e.g. a CSS style attribute).
@@ -97,10 +97,10 @@ public class Style {
   public static final int WIDTH = 57;
   public static final int Z_INDEX = 58;
   
-  private static final int BORDER_TOP_SPACING = 59;
-  private static final int BORDER_RIGHT_SPACING = 60;
-  private static final int BORDER_BOTTOM_SPACING = 61;
-  private static final int BORDER_LEFT_SPACING = 62;
+  public static final int BORDER_TOP_SPACING = 59;
+  public static final int BORDER_RIGHT_SPACING = 60;
+  public static final int BORDER_BOTTOM_SPACING = 61;
+  public static final int BORDER_LEFT_SPACING = 62;
 
   // all inherited properties and the background color
   private static final int TEXT_PROPERTY_COUNT = 21;
@@ -291,18 +291,10 @@ public class Style {
   private int[] values = new int[TEXT_PROPERTY_COUNT];
   private byte[] units = new byte[TEXT_PROPERTY_COUNT];
 
-  /*
-  static class CssValue {
-    int value;
-    byte unit;
-  }*/
-  
   static final int[] TOP_LEVEL = new int[0];
 
-  // TODO: Make private and provide access via getString(id) for consistency.
-  // This will allow for toString simplification.
-  public String backgroundImage;
-  public String fontFamily;
+  String backgroundImage;
+  String fontFamily;
 
   /**
    * Specificity of this style, set by the corresponding selector in the
@@ -730,7 +722,7 @@ public class Style {
   /**
    * Determines whether a length has a fixed value.
    */
-  public boolean lengthIsFixed(int id) {
+  public boolean isLengthFixed(int id) {
     switch(getUnit(id)) {
       case NUMBER:
       case CM:
@@ -746,8 +738,8 @@ public class Style {
     return false;
   }
 
-  public boolean lengthIsFixedOrPercent(int id) {
-    return getUnit(id) == PERCENT || lengthIsFixed(id);
+  public boolean isLengthFixedOrPercent(int id) {
+    return getUnit(id) == PERCENT || isLengthFixed(id);
   }
   
   /**
@@ -758,12 +750,12 @@ public class Style {
    */
   public int getPx(int id) {
     if (id >= BORDER_TOP_WIDTH && id <= BORDER_LEFT_WIDTH) {
-      if (getValue(id - BORDER_TOP_WIDTH + BORDER_TOP_STYLE) == 0) {
+      if (getRaw(id - BORDER_TOP_WIDTH + BORDER_TOP_STYLE) == 0) {
         return 0;
       }
 
       if (getUnit(id) == ENUM){
-        switch(getValue(id)) {
+        switch(getRaw(id)) {
           case THIN: 
             return 1;
           case THICK:
@@ -774,7 +766,7 @@ public class Style {
       }
     }
 
-    int v = getValue(id);
+    int v = getRaw(id);
     // none, 0
 
 
@@ -819,23 +811,21 @@ public class Style {
    * Returns the value of the property if it is an ENUM, INVALID otherwise.
    */
   public int getEnum(int id) {
-    return getUnit(id) == ENUM ? getValue(id) : INVALID;
+    return getUnit(id) == ENUM ? getRaw(id) : INVALID;
   }
 
   /**
-   * 
-   * 
-   * @param id
-   * @param containerLength
-   * @param imageLength
-   * @return
+   * Return the ARGB color value if the property contains a color value; 0 otherwise.
    */
-  public int getBackgroundReferencePoint(int id, int containerLength, 
-      int imageLength) {
+  public int getColor(int id) {
+    return getUnit(id) == ARGB ? getRaw(id) : 0;
+  }
+
+  public int getBackgroundReferencePoint(int id, int containerLength, int imageLength) {
     int percent = 0;
     switch(getUnit(id)) {
       case ENUM:
-        switch(getValue(id)) {
+        switch(getRaw(id)) {
           case TOP:
           case LEFT:
             return 0;
@@ -851,7 +841,7 @@ public class Style {
         }
         break;
       case PERCENT:
-        percent = getValue(id) / 1000;
+        percent = getRaw(id) / 1000;
         break;
       default:
         return getPx(id);
@@ -879,7 +869,7 @@ public class Style {
    * @param id property id
    * @return raw propery value
    */
-  public int getValue(int id) {
+  public int getRaw(int id) {
     //    if (id >= units.length || (units[id] == PERCENT && id == HEIGHT)) {
     //      return id == WIDTH || id == HEIGHT ? AUTO : 0;
     //    }
@@ -908,8 +898,7 @@ public class Style {
       case DISPLAY:
         return INLINE;
       case FONT_SIZE:
-        // TODO: Scale up in Element.
-        return 16000;
+        return 16000;  // 12pt in millipx.
       case FONT_WEIGHT:
         return 400000;
       case LINE_HEIGHT: 
@@ -919,9 +908,43 @@ public class Style {
       case POSITION:
         return STATIC;
       case BACKGROUND_REPEAT: 
-    	return REPEAT;
+        return REPEAT;
     }
     return 0;
+  }
+
+  public String getString(int id) {
+    if (!isSet(id)) {
+      return null;
+    }
+    if (id == BACKGROUND_IMAGE) {
+      return backgroundImage;
+    } else if (id == FONT_FAMILY) {
+      return fontFamily;
+    }
+    int v = values[id];
+    byte unit = units[id];
+    switch (unit) {
+    case ARGB:
+      return '#' + Integer.toString((v & 0x0ffffff) | 0x01000000, 16).substring(1);
+    case ENUM:
+      return ID_TO_VALUE_MAP.get(v);
+    default:
+      StringBuilder buf = new StringBuilder();
+      if (v % 1000 == 0) {
+        buf.append(v / 1000);
+      } else {
+        buf.append(v);
+        while (buf.length() < 4) {
+          buf.insert(0, '0');
+        }
+        buf.insert(buf.length() - 3, '.');
+      }
+      if (unit >= 0 && unit < UNIT_NAMES.length) {
+        buf.append(UNIT_NAMES[unit]);
+      }
+      return buf.toString();
+    }
   }
 
   /**
@@ -982,55 +1005,54 @@ public class Style {
 
         int pos = 0;
         loop : while (true) {
-
           switch (tokenizer.ttype) {
-            case CssTokenizer.TT_HASH:
-              setColor(id, '#' + tokenizer.sval, pos);
-              break;
+          case CssTokenizer.TT_HASH:
+            setColor(id, '#' + tokenizer.sval, pos);
+            break;
 
-            case CssTokenizer.TT_DIMENSION:
-              set(id, tokenizer.nval, 
-                  (byte) CssUtils.indexOfIgnoreCase(UNIT_NAMES, tokenizer.sval), pos);
-              break;
+          case CssTokenizer.TT_DIMENSION:
+            set(id, tokenizer.nval, 
+                (byte) CssUtils.indexOfIgnoreCase(UNIT_NAMES, tokenizer.sval), pos);
+            break;
 
-            case CssTokenizer.TT_NUMBER:
-              set(id, tokenizer.nval, NUMBER, pos);
-              break;
+          case CssTokenizer.TT_NUMBER:
+            set(id, tokenizer.nval, NUMBER, pos);
+            break;
 
-            case CssTokenizer.TT_PERCENTAGE:
-              set(id, tokenizer.nval, PERCENT, pos);
-              break;
+          case CssTokenizer.TT_PERCENTAGE:
+            set(id, tokenizer.nval, PERCENT, pos);
+            break;
 
-            case CssTokenizer.TT_IDENT:
-              Long v = (Long) VALUE_TO_ID_MAP.get(tokenizer.sval);
-              if (v != null) {
-                set(id, (int) v.longValue(),
-                    (byte) (v.longValue() >>> 32), pos);
-              } else if (id == MULTIVALUE_FONT || id == FONT_FAMILY) {
-                fontFamily = (fontFamily == null ? "" : fontFamily) + tokenizer.sval;
-                set(id, 0, STRING);
-              } else {
-                tokenizer.debug("Unrecognized value '" + v + "' for property " + name);
-              }
-              break;
+          case CssTokenizer.TT_IDENT:
+            Long v = (Long) VALUE_TO_ID_MAP.get(tokenizer.sval);
+            if (v != null) {
+              set(id, (int) v.longValue(),
+                  (byte) (v.longValue() >>> 32), pos);
+            } else if (id == MULTIVALUE_FONT || id == FONT_FAMILY) {
+              fontFamily = (fontFamily == null ? "" : fontFamily) + tokenizer.sval;
+              set(id, 0, STRING);
+            } else {
+              tokenizer.debug("Unrecognized value '" + v + "' for property " + name);
+            }
+            break;
 
-            case CssTokenizer.TT_URI:
-              if (id == MULTIVALUE_BACKGROUND || id == BACKGROUND_IMAGE) {
-                backgroundImage = tokenizer.sval;
-                set(id, 0, STRING);
-              }
-              break;
+          case CssTokenizer.TT_URI:
+            if (id == MULTIVALUE_BACKGROUND || id == BACKGROUND_IMAGE) {
+              backgroundImage = tokenizer.sval;
+              set(id, 0, STRING);
+            }
+            break;
 
-            case ',':
-            case CssTokenizer.TT_STRING:
-              if (id == MULTIVALUE_FONT || id == FONT_FAMILY) {
-                fontFamily = (fontFamily == null ? "" : fontFamily) + tokenizer.sval;
-                set(id, 0, STRING);
-              }
-              break;
+          case ',':
+          case CssTokenizer.TT_STRING:
+            if (id == MULTIVALUE_FONT || id == FONT_FAMILY) {
+              fontFamily = (fontFamily == null ? "" : fontFamily) + tokenizer.sval;
+              set(id, 0, STRING);
+            }
+            break;
 
-            default:
-              break loop;
+          default:
+            break loop;
           }
           pos++;
           tokenizer.nextToken(false);
@@ -1102,33 +1124,7 @@ public class Style {
     for (int id = 0; id < PROPERTY_COUNT; id++) {
       if (isSet(id)) {
         sb.append(indent).append(ID_TO_NAME_MAP.get(id)).append(": ");
-        int v = values[id];
-
-        byte unit = units[id];
-        switch (units[id]) {
-          case ARGB:
-            sb.append('#');
-            sb.append(Integer.toString((v & 0x0ffffff) | 0x01000000, 16).substring(1));
-            break;
-          case ENUM:
-            sb.append(ID_TO_VALUE_MAP.get(v));
-            break;
-          default:
-            StringBuilder buf;
-            if (v % 1000 == 0) {
-              System.out.print(v / 1000);
-            } else {
-              buf = new StringBuilder(Integer.toString(v));
-              while (buf.length() < 4) {
-                buf.insert(0, '0');
-              }
-              buf.insert(buf.length() - 3, '.');
-              sb.append(buf);
-            }
-            if (unit >= 0 && unit < UNIT_NAMES.length) {
-              sb.append(UNIT_NAMES[unit]);
-            }
-        }
+        sb.append(getString(id));
         sb.append(";\n");
       }
     }
@@ -1138,7 +1134,7 @@ public class Style {
   /**
    * Compares the specificity of this style to s2 and returns the difference.
    */
-  public int compare(Style s2) {
+  public int compareSpecificity(Style s2) {
 
     if (specificity > s2.specificity) {
       return 1;
