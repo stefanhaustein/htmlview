@@ -24,9 +24,9 @@ import java.util.Map;
  */
 public interface RequestHandler {
 
-  void openLink(HtmlView htmlView, URI uri, String target);
+  void openLink(HtmlView htmlView, Element a, URI uri);
   
-  void submitForm(HtmlView htmlView, URI uri, boolean post, Map<String,String> formData);
+  void submitForm(HtmlView htmlView, Element form, URI uri, boolean post, Map<String,String> formData);
   
   void requestImage(HtmlView htmlView, URI uri);
   

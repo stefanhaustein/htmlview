@@ -1135,7 +1135,6 @@ public class Style {
    * Compares the specificity of this style to s2 and returns the difference.
    */
   public int compareSpecificity(Style s2) {
-
     if (specificity > s2.specificity) {
       return 1;
     } else if (specificity < s2.specificity) {
@@ -1149,10 +1148,8 @@ public class Style {
           return -1;
         }
       }
-
       int n1 = min + 1 < nesting.length ? nesting[min + 1] : position;
       int n2 = min + 1 < s2.nesting.length ? s2.nesting[min + 1] : s2.position;
-
       return n1 - n2;
     }
   }

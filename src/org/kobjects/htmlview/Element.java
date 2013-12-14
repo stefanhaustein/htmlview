@@ -20,6 +20,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.kobjects.css.CssUtils;
@@ -31,6 +32,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.util.Log;
+import android.view.View;
 
 
 
@@ -134,6 +136,7 @@ public class Element implements org.kobjects.css.StylableElement {
   private Style computedStyle;
   private Paint fontCache;
   private Paint backgroundCache;
+  View nativeView;
 
   /**
    * Create a new element with the given name. 
@@ -237,6 +240,14 @@ public class Element implements org.kobjects.css.StylableElement {
    */
   public String getName() {
     return name;
+  }
+  
+  /** 
+   * Returns the "native" view associated with this (input) element, e.g. the
+   * EditText view for an input element.
+   */
+  public View getNativeView() {
+    return nativeView;
   }
 
   /**
@@ -560,7 +571,6 @@ public class Element implements org.kobjects.css.StylableElement {
       }
     };
   }
-  
 
   /** 
    * Called from StyleSheet.apply with the computed style.
@@ -823,8 +833,8 @@ public class Element implements org.kobjects.css.StylableElement {
       if (href.startsWith("#")) {
         htmlView.gotoLabel(href.substring(1));
       } else {
-        htmlView.requestHandler.openLink(htmlView, 
-            htmlView.getAbsoluteUrl(getAttributeValue("href")), getAttributeValue("target"));
+        htmlView.requestHandler.openLink(htmlView, this,
+            htmlView.getAbsoluteUrl(getAttributeValue("href")));
       }
       return true;
     }
@@ -846,5 +856,22 @@ public class Element implements org.kobjects.css.StylableElement {
       }
     }
     return -1;
+  }
+  
+  /**
+   * returns the stringified start tag including attributes. Does not do any escaping --
+   * this is not safe for any use other than debugging.
+   */
+  public String toString() {
+    StringBuilder sb = new StringBuilder("<");
+    sb.append(name);
+    for (Map.Entry<String,String> e: attributes.entrySet()) {
+      sb.append(' ');
+      sb.append(e.getKey());
+      sb.append('=');
+      sb.append(e.getValue()); 
+    }
+    sb.append('>');
+    return sb.toString();
   }
 }

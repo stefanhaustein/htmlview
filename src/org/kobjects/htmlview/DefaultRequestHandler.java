@@ -24,22 +24,21 @@ import android.util.Log;
 public class DefaultRequestHandler implements RequestHandler {
 
   @Override
-  public void openLink(HtmlView htmlView, URI uri, String target) {
-    Log.i("HtmlView", "openLink " + uri);
-    if ("_htmlview".equals(target)) {
-      htmlView.loadAsync(uri, HtmlView.Onload.SHOW_HTML);
+  public void openLink(HtmlView htmlView, Element a, URI href) {
+    Log.i("HtmlView", "openLink " + href);
+    if ("_htmlview".equals(a.getAttributeValue("target"))) {
+      htmlView.loadAsync(href, HtmlView.Onload.SHOW_HTML);
     } else {
       Intent intent = new Intent(Intent.ACTION_VIEW);
-      intent.setData(Uri.parse(uri.toString()));
+      intent.setData(Uri.parse(href.toString()));
       htmlView.getContext().startActivity(intent);
     }
   }
 
   @Override
-  public void submitForm(HtmlView htmlView, URI uri, boolean post, Map<String, String> formData) {
-    Log.i("HtmlView", "submitForm " + uri);
-    // TODO Auto-generated method stub
-    
+  public void submitForm(HtmlView htmlView, Element form, URI uri, boolean post, 
+      Map<String, String> formData) {
+    Log.i("HtmlView", "submitForm " + uri + " data: " + formData);
   }
 
   @Override

@@ -14,6 +14,8 @@
 
 package org.kobjects.htmlview;
 
+import java.util.Map;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -581,11 +583,9 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
     super.performClick();
     return element.click();
   }
-  
-  
+
   static class BuildContext {
     boolean unassignedTraversal;
     boolean preserveLeadingSpace;
   }
-
 }

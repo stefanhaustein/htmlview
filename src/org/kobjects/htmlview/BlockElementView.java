@@ -148,10 +148,10 @@ class BlockElementView extends AbstractElementView {
     } else if ("option".equals(name) || "textarea".equals(name) ||
         ("input".equals(name) && !"hidden".equals(child.getAttributeValue("type"))) ||
         ("select".equals(name) && !child.getAttributeBoolean("multiple"))) {
-      children.add(WrapperView.createInput(getContext(), child));
+      children.add(NativeElementView.createInput(getContext(), child));
     } else if ("img".equals(name)) {
       buildContext.preserveLeadingSpace = true;
-      children.add(WrapperView.createImg(getContext(), child));
+      children.add(NativeElementView.createImg(getContext(), child));
     } else {
       if (style.isBlock(false)) {
         children.add(new BlockElementView(getContext(), child, buildContext));
