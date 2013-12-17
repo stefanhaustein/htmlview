@@ -511,7 +511,7 @@ public class Element implements org.kobjects.css.StylableElement {
     switch (flags & 0xffff0000) {
       case TAG_STYLE:
         if (StyleSheet.matchesMediaType(getAttributeValue("media"), HtmlView.MEDIA_TYPES)) {
-          htmlView.updateStyle(htmlView.getDocumentUrl(), getText(), new int[] {position});
+          htmlView.updateStyle(htmlView.baseUrl, getText(), new int[] {position});
         }
         break;
       case TAG_TITLE:
@@ -530,7 +530,7 @@ public class Element implements org.kobjects.css.StylableElement {
         String href = getAttributeValue("href");
         if (href != null) {
           try {
-            htmlView.baseURL = new URI(href);
+            htmlView.baseUrl = new URI(href);
           } catch (URISyntaxException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -730,10 +730,10 @@ public class Element implements org.kobjects.css.StylableElement {
         int cols = getAttributeInt("cols", 20);
         style.set(Style.WIDTH, style.getPx(Style.FONT_SIZE) * (cols + 2) * 500, Style.PX);
       }
-      if (!style.isSet(Style.HEIGHT)) {
+/*      if (!style.isSet(Style.HEIGHT)) {
         int rows = getAttributeInt("rows", 2);
         style.set(Style.HEIGHT, style.getPx(Style.FONT_SIZE) * (rows + 1) * 1000, Style.PX);
-      }
+      } */
     }
   }
 
@@ -777,13 +777,14 @@ public class Element implements org.kobjects.css.StylableElement {
   }
   
   public int getScaledPx(int id) {
-    return computedStyle.getPx(id) * 2;
+    return Math.round(computedStyle.getPx(id) * htmlView.pixelScale);
   }
 
   public Paint getFont() {
     if (this.fontCache == null) {
       this.fontCache = new Paint();
       this.fontCache.setTextSize(getScaledPx(Style.FONT_SIZE));
+      Log.d("HtmlView", "TextSize: " + getScaledPx(Style.FONT_SIZE) + " typeface: " + Typeface.DEFAULT);
       int style = computedStyle.getRaw(Style.FONT_WEIGHT) >= Style.BOLD ? Typeface.BOLD : Typeface.NORMAL;
       switch (computedStyle.getEnum(Style.FONT_STYLE)) {
       case Style.ITALIC: 
@@ -802,7 +803,6 @@ public class Element implements org.kobjects.css.StylableElement {
         } else if (s.indexOf("serif") != -1) {
           typeface = s.indexOf("sans") != -1 ? Typeface.SANS_SERIF : Typeface.SERIF;
         }
-        Log.d("font", "css typeface: " + s + " result: " + typeface.toString());
       }
       this.fontCache.setTypeface(style == 0 ? typeface : Typeface.create(typeface, style));
       this.fontCache.setColor(computedStyle.getColor(Style.COLOR));
@@ -811,7 +811,7 @@ public class Element implements org.kobjects.css.StylableElement {
   }
 
   public int getScaledPx(int id, int percentOf) {
-    return computedStyle.getPx(id, percentOf / 2) * 2;
+    return Math.round(computedStyle.getPx(id, Math.round(percentOf / htmlView.pixelScale)) * htmlView.pixelScale);
   }
 
   
@@ -865,11 +865,13 @@ public class Element implements org.kobjects.css.StylableElement {
   public String toString() {
     StringBuilder sb = new StringBuilder("<");
     sb.append(name);
-    for (Map.Entry<String,String> e: attributes.entrySet()) {
-      sb.append(' ');
-      sb.append(e.getKey());
-      sb.append('=');
-      sb.append(e.getValue()); 
+    if (attributes != null) {
+      for (Map.Entry<String,String> e: attributes.entrySet()) {
+        sb.append(' ');
+        sb.append(e.getKey());
+        sb.append('=');
+        sb.append(e.getValue()); 
+      }
     }
     sb.append('>');
     return sb.toString();

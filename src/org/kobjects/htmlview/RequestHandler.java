@@ -15,6 +15,7 @@
 package org.kobjects.htmlview;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,11 +25,21 @@ import java.util.Map;
  */
 public interface RequestHandler {
 
+  enum ProgressType {
+    CONNECTING, LOADING_PERCENT, LOADING_BYTES, DONE
+  }
+  
+  void click(HtmlView htmlView, Element e, String onClick);
+  
   void openLink(HtmlView htmlView, Element a, URI uri);
   
-  void submitForm(HtmlView htmlView, Element form, URI uri, boolean post, Map<String,String> formData);
+  void submitForm(HtmlView htmlView, Element form, URI uri, boolean post, List<Map.Entry<String,String>> formData);
   
   void requestImage(HtmlView htmlView, URI uri);
   
   void requestStyleSheet(HtmlView htmlView, URI uri);
- }
+  
+  void error(HtmlView htmlView, Exception e);
+  
+  void progress(HtmlView htmlView, ProgressType type, int progress);
+}

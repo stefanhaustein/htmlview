@@ -15,6 +15,7 @@
 package org.kobjects.htmlview;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.HashMap;
 
 import android.graphics.Paint;
@@ -149,5 +150,16 @@ class HtmlUtils {
     return w;
   }
   
-  
+  /** 
+   * Calls uri.toString and normalizes file: URLs to start with three slashes if 
+   * there is exactly one.
+   */
+  public static String toString(URI uri) {
+    if (uri == null) {
+      return null;
+    }
+    String s = uri.toString();
+    return s.startsWith("file:/") && !s.startsWith("file://") && !s.startsWith("file:///") 
+      ? "file:///" + s.substring(6) : s;
+  }
 }

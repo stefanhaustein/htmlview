@@ -215,15 +215,6 @@ public class StyleSheet {
         set(Style.MARGIN_BOTTOM, defaultParagraphSpace, Style.PX);
     pre.fontFamily = "monospace";
     s.put("pre", pre);
-    s.put("select[multiple]", new Style().
-        set(Style.DISPLAY, Style.BLOCK, Style.ENUM).
-       // set(Style.BACKGROUND_COLOR, 0x0ffff0000, Style.ARGB).
-        set(Style.PADDING_TOP | Style.MULTIVALUE_TRBL, 1000, Style.PX, 0).
-        set(Style.BORDER_TOP_WIDTH | Style.MULTIVALUE_TRBL, 1000, Style.PX, 0).
-        set(Style.BORDER_TOP_COLOR | Style.MULTIVALUE_TRBL, 
-            0x0ff888888, Style.ARGB, 0).
-        set(Style.BORDER_TOP_STYLE | Style.MULTIVALUE_TRBL, 
-            Style.SOLID, Style.ENUM, 0));
     s.put("script", new Style().set(Style.DISPLAY, Style.NONE, Style.ENUM));
     s.put("strong", new Style().set(Style.FONT_WEIGHT, Style.BOLD, Style.ENUM));
     s.put("style", new Style().set(Style.DISPLAY, Style.NONE, Style.ENUM));

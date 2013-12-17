@@ -18,6 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLConnection;
@@ -35,10 +36,13 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewParent;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -79,7 +83,16 @@ public class HtmlView extends BlockElementView  {
   };
 
   public static final String[] MEDIA_TYPES = {"all", "screen", "mobile"};
+  public static URI ASSET_BASE_URL;
 
+  {
+    try {
+      ASSET_BASE_URL = new URI("file:///android_asset/");
+    } catch (URISyntaxException e) {
+      // Should be impossible -- the URI syntax is correct.
+      throw new RuntimeException(e);
+    }
+  }
   /** CSS style sheet for this document. */
   StyleSheet styleSheet = StyleSheet.createDefault();
 
@@ -95,13 +108,10 @@ public class HtmlView extends BlockElementView  {
 
   
   /** Request handler used by this widget to request resources. */
-  protected RequestHandler requestHandler = new DefaultRequestHandler();
-
-  /** URL of the page represented by this widget. */
-  private URI documentUrl;
+  protected RequestHandler requestHandler = new DefaultRequestHandler(true);
 
   /** Base URL for this document */
-  URI baseURL;
+  URI baseUrl = ASSET_BASE_URL;
 
   /** Maps labels to view */
   HashMap<String, View> labels = new HashMap<String, View>();
@@ -109,8 +119,8 @@ public class HtmlView extends BlockElementView  {
   /** Map for access keys */
   HashMap<Character, Element> accesskeys = new HashMap<Character, Element>();
 
-  /** The title of the document. Initialized to "---" to avoid null pointers. */
-  String title = "---";
+  /** The title of the document. Initialized to "" to avoid null pointers. */
+  String title = "";
 
   /** 
    * We need to keep a reference to the focused element since we may need to rebuild
@@ -121,6 +131,8 @@ public class HtmlView extends BlockElementView  {
   /** True if the widget tree needs to be rebuilt. */
   boolean needsBuild = true;
   
+  float pixelScale = 1;
+  
   /**
    * Creates a HTML document widget.
    * 
@@ -129,64 +141,70 @@ public class HtmlView extends BlockElementView  {
    */
   public HtmlView(Context context) {
     super(context, null, false);
-    try {
-      this.baseURL = this.documentUrl = new URI("");
-    } catch(Exception e) {
-      throw new RuntimeException();
-    }
+    // android.R.layout.simple_spinner_dropdown_item
+    // android.R.layout.simple_list_item_1
+    TextView tv = (TextView) LayoutInflater.from(context).inflate(android.R.layout.simple_spinner_dropdown_item, null,false); 
+    
+    pixelScale = tv.getTextSize() / 16f;
+    Log.d("HtmlView", "TextView text size: " + tv.getTextSize() + " paint: " + tv.getPaint().getTypeface());
   }
   
   public void loadUrl(String url) {
-    try {
-      loadAsync(new URI (url), Onload.SHOW_HTML);
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
+    loadAsync(ASSET_BASE_URL.resolve(url), Onload.SHOW_HTML);
   }
 
-  
+  /**
+   * This method expects that the URI is absolute.
+   */
   public void loadAsync(final URI uri, final Onload onload) {
-    new AsyncTask<Void, String, Boolean>() {
+    new AsyncTask<Void, Integer, Exception>() {
       String encoding;
       byte[] rawData;
-      Bitmap image;
-      Toast toast;
-      int toastTextLength;
-      
+      Bitmap image;      
       @Override
-      protected Boolean doInBackground(Void... params) {
+      protected Exception doInBackground(Void... params) {
         try {
-          ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          publishProgress("Connecting...");
-          URLConnection con = uri.toURL().openConnection();
-          con.setRequestProperty("UserAgent", "AndroidHtmlView/1.0 (Mobile)");
-          InputStream is = con.getInputStream();
-          publishProgress("Starting transfer...");
-          byte[] buf = new byte[8096];
-          String contentType = con.getContentType();
-          encoding = "ISO-8859-1";  // As per HTTP spec.
-          if (contentType != null) {
-            int cut = contentType.indexOf("charset=");
-            if (cut != -1) {
-              encoding = contentType.substring(cut + 8).trim();
+          int contentLength = -1;
+          InputStream is;
+          String uriStr = HtmlUtils.toString(uri);
+          if (uriStr.startsWith("file:///android_asset/")) {
+            int cut = uriStr.indexOf("t/") + 2;
+            String assetName = uriStr.substring(cut);
+            is = getContext().getAssets().open(assetName);
+            encoding = null;
+          } else {
+            publishProgress(RequestHandler.ProgressType.CONNECTING.ordinal(), 0);
+            URLConnection con = uri.toURL().openConnection();
+            con.setRequestProperty("UserAgent", "AndroidHtmlView/1.0 (Mobile)");
+            is = con.getInputStream();
+            encoding = "ISO-8859-1";  // As per HTTP spec.
+            String contentType = con.getContentType();
+            if (contentType != null) {
+              int cut = contentType.indexOf("charset=");
+              if (cut != -1) {
+                encoding = contentType.substring(cut + 8).trim();
+              }
             }
+            contentLength = con.getContentLength();
           }
-          Log.d("HtmlView", "encoding: " + encoding);
-          int contentLength = con.getContentLength();
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          byte[] buf = new byte[8096];
           while (true) {
+            if (contentLength <= 0) {
+              publishProgress(RequestHandler.ProgressType.LOADING_BYTES.ordinal(), 
+                  baos.size());
+            } else {
+              publishProgress(RequestHandler.ProgressType.LOADING_PERCENT.ordinal(), 
+                  baos.size() * 100 / contentLength);
+            }
             int count = is.read(buf);
             if (count <= 0) {
               break;
             }
             baos.write(buf, 0, count);
-            if (contentLength <= 0) {
-              publishProgress("Transferred " + baos.size() + " bytes");
-            } else {
-              publishProgress("Transferred " + (baos.size() * 100 / contentLength) + "%");
-            }
           }
           is.close();
-          publishProgress("Transfer complete.");
+          publishProgress(RequestHandler.ProgressType.DONE.ordinal(), 0);
           rawData = baos.toByteArray();
           baos = null;
           switch(onload) {
@@ -195,63 +213,52 @@ public class HtmlView extends BlockElementView  {
             rawData = null;
             break;
           }
-          return true;
+          return null;
         } catch (Exception e) {
-          Log.e("HtmlView", "Exception while requesting " + uri, e);
           encoding = null;
-          return false;
+          return e;
         }
       }
       @Override
-      protected void onPostExecute(Boolean success) {
-        if (toast != null) {
-          toast.cancel();
-        }
-        if (success != Boolean.TRUE) {
-          return;
-        }
-        switch(onload) {
-        case SHOW_HTML:
-          setDocumentUrl(uri);
-          loadData(rawData, encoding);
-          break;
-        case ADD_IMAGE:
-          addImage(uri, image);
-          break;
+      protected void onPostExecute(Exception e) {
+        if (e != null) {
+          if (onload == Onload.SHOW_HTML) {
+            requestHandler.error(HtmlView.this, e);
+          }
+        } else {
+          switch(onload) {
+          case SHOW_HTML:
+            loadData(rawData, encoding, uri);
+            break;
+          case ADD_IMAGE:
+            addImage(uri, image);
+            break;
+          case ADD_STYLE_SHEET:
+            if (encoding == null) {
+              encoding = HtmlUtils.UTF8;
+            }
+            try {
+              addStyleSheet(uri, new String(rawData, encoding));
+            } catch (UnsupportedEncodingException uee) {
+              Log.e("HtmlView", "Unsupported Encoding: " + encoding, uee);
+            }
+            break;
+          }
         }
       }
       @Override 
-      protected void onProgressUpdate(String... s) {
+      protected void onProgressUpdate(Integer... progress) {
         if (onload == Onload.SHOW_HTML) {
-          if (toast != null) {
-            // Prevent jumping around... :-/
-            if (toastTextLength != s[0].length()) {
-              toast.cancel();
-              toast = null;
-            } else {
-              toast.setText(s[0]);
-            }
-          }
-          if (toast == null) {
-            toast = Toast.makeText(getContext(), s[0], Toast.LENGTH_LONG);
-          }
-          toast.show();
+          requestHandler.progress(HtmlView.this, 
+              RequestHandler.ProgressType.values()[progress[0]], progress[1]);
         }
       }
-    }.execute((Void[]) null);
+    }.execute(null, null);
   }
-  
-  
-  public void setDocumentUrl(URI url) {
-    documentUrl = baseURL = url;
-  }
-  
-  
+
+
   public void onMeasure(int widthSpec, int heightSpec) {
-    Log.d("HtmlView", "onMeasure w:" + View.MeasureSpec.toString(widthSpec) + " h: " + View.MeasureSpec.toString(heightSpec));
-    
     int viewportWidth = View.MeasureSpec.getSize(widthSpec);
-    
     if (element == null) {
       setMeasuredDimension(viewportWidth, 0);
       return;
@@ -269,7 +276,7 @@ public class HtmlView extends BlockElementView  {
   }
 
   public void loadHtml(String html) {
-    loadData(HtmlUtils.getUtf8Bytes(html), null);
+    loadData(HtmlUtils.getUtf8Bytes(html), null, null);
   }
   
   /**
@@ -277,9 +284,13 @@ public class HtmlView extends BlockElementView  {
    * 
    * @param is The stream to read the document from
    * @param encoding The stream encoding. Defaults to UTF8 if null or empty.
+   * @param url The base URL for resolving local image URLs, links etc. If null,
+   *    the asset base URL will be used. If relative, this will be resolved relative
+   *    to the asset base URL.
    */
-  public void loadData(byte[] data, String encoding) {
-
+  public void loadData(byte[] data, String encoding, URI url) {
+    this.baseUrl = url == null ? ASSET_BASE_URL : ASSET_BASE_URL.resolve(url);
+    
     // Obtain the data, build the DOM
     Element htmlElement;
 
@@ -341,7 +352,7 @@ public class HtmlView extends BlockElementView  {
     // Defer scrolling to the fragment to when we know where it is...
     post(new Runnable() {
       public void run() {
-        gotoLabel(documentUrl.getFragment());
+        gotoLabel(baseUrl.getFragment());
       }
     });
   }
@@ -376,14 +387,7 @@ public class HtmlView extends BlockElementView  {
    * is already absolute, it is returned unchanged.
    */
   public URI getAbsoluteUrl(String relativeUrl) {
-    return baseURL.resolve(relativeUrl);
-  }
-
-  /**
-   * Returns the URL of this document, as set in setDocumentUrl() (or via loadUrl).
-   */
-  public URI getDocumentUrl() {
-    return documentUrl;
+    return baseUrl.resolve(relativeUrl);
   }
 
   /**
@@ -393,7 +397,7 @@ public class HtmlView extends BlockElementView  {
     if (element == null) {
       return;
     }
-    styleSheet.apply(element, baseURL);
+    styleSheet.apply(element, baseUrl);
     if (needsBuild) {
       needsBuild = false;
       children = new ArrayList<View>();
@@ -441,10 +445,11 @@ public class HtmlView extends BlockElementView  {
   }
 
   /**
-   * Returns the base URL of this document (used to resolve relative links).
+   * Returns the base URL of this document as handed in. Will be the document URL 
+   * if the document was loaded via loadUrl. Used to resolve relative URLs.
    */
-  public URI getBaseURL() {
-    return baseURL;
+  public URI getBaseUrl() {
+    return baseUrl;
   }
   
   /**

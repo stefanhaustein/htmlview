@@ -566,7 +566,6 @@ abstract class AbstractElementView extends ViewGroup implements HasMeasuredPosit
   }
   
   void requestLayoutAll() {
-    Log.d("HtmlView", "requestLayoutAll on " + this);
     requestLayout();
     for (int i = 0; i < getChildCount(); i++) {
       View child = getChildAt(i);

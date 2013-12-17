@@ -145,9 +145,9 @@ class BlockElementView extends AbstractElementView {
       // ignore
     } else if (display == Style.TABLE || display == Style.INLINE_TABLE) { 
       children.add(new TableElementView(getContext(), child));
-    } else if ("option".equals(name) || "textarea".equals(name) ||
+    } else if ("textarea".equals(name) ||
         ("input".equals(name) && !"hidden".equals(child.getAttributeValue("type"))) ||
-        ("select".equals(name) && !child.getAttributeBoolean("multiple"))) {
+        ("select".equals(name))) {
       children.add(NativeElementView.createInput(getContext(), child));
     } else if ("img".equals(name)) {
       buildContext.preserveLeadingSpace = true;

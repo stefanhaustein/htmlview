@@ -898,7 +898,7 @@ public class Style {
       case DISPLAY:
         return INLINE;
       case FONT_SIZE:
-        return 16000;  // 12pt in millipx.
+        return 12000;  // 12pt
       case FONT_WEIGHT:
         return 400000;
       case LINE_HEIGHT: 
@@ -968,6 +968,8 @@ public class Style {
         return ARGB;
       case FONT_WEIGHT:
         return NUMBER;
+      case FONT_SIZE:
+        return PT;
     }
 
     // Note: ENUM is fine for number types since 0 is returned for getPx()

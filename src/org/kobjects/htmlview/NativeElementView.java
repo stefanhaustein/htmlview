@@ -1,32 +1,41 @@
 package org.kobjects.htmlview;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 import java.util.Map;
 
 import org.kobjects.css.Style;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.text.InputType;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Checkable;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.RadioButton;
+import android.widget.Spinner;
+import android.widget.TextView;
 
 /**
  * Wraps a "regular" android view with HTML margins, padding and borders. 
  */
-@SuppressLint("ViewConstructor")
 class NativeElementView extends AbstractElementView implements View.OnClickListener {
 
   private View nativeView;
 
+  
   static NativeElementView createImg(Context context, Element child) {
     // TODO: Focus / click handling for buttons in a link?
     ImageView imageView = new ImageView(context);
@@ -43,8 +52,7 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
     return wrapper;
   }
 
-
-  static NativeElementView createInput(Context context, Element element) {
+  static NativeElementView createInput(final Context context, final Element element) {
     String name = element.getName();
     View content = null; // null should not be necessary 
     int textSize = element.getScaledPx(Style.FONT_SIZE);
@@ -52,8 +60,37 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
       EditText editText = new EditText(context);
       editText.setSingleLine(false);
       editText.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+      editText.setGravity(Gravity.TOP);
+      // TODO: Calculate lines based on height if fixed.
+      editText.setLines(element.getAttributeInt("rows", 2));
+      editText.setVerticalScrollBarEnabled(true);
+      LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT);
+      editText.setLayoutParams(params);
       content = editText;
-    } else {//if ("input".equals(name)) {
+    } else if ("select".equals(name)) {
+      boolean multiple = element.getAttributeBoolean("multiple");
+      ArrayList<Element> options = new ArrayList<Element>();
+      for (int i = 0; i < element.getChildCount(); i++) {
+        if (element.getChildType(i) == Element.ELEMENT) {
+          Element child = element.getElement(i);
+          if (child.getName().equals("option")) {
+            options.add(child);
+          }
+        }
+      }
+      SelectAdapter adapter = new SelectAdapter(context, element, multiple, options);
+      content = adapter.view;
+      adapter.reset(); // needed here: performs measurement
+      content.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
+     
+      if (!element.getComputedStyle().isSet(Style.WIDTH)) {
+        element.getComputedStyle().set(Style.WIDTH, Math.round(
+            (adapter.width + content.getMeasuredWidth()) * 1000 / element.htmlView.pixelScale), Style.PX);
+      } if (!element.getComputedStyle().isSet(Style.HEIGHT)) {
+        element.getComputedStyle().set(Style.HEIGHT, Math.round(element.getFont().getFontMetricsInt(null) * 
+            (1 + element.getAttributeInt("size", 1) * 2000 / element.htmlView.pixelScale)), Style.PX);
+      }
+    } else { // input
       String type = element.getAttributeValue("type");
       if ("checkbox".equals(type)) {
         content = new CheckBox(context);
@@ -78,22 +115,34 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
     if (content instanceof Button) {
       content.setOnClickListener(result);
     }
-    result.reset(null);
+    result.reset();
     return result;
   }
   
-  static void reset(Element element, String name) {
+  static void reset(Element element) {
     if (element.nativeView != null) {
-      ((NativeElementView) element.nativeView.getParent()).reset(name);
+      ((NativeElementView) element.nativeView.getParent()).reset();
     }
     for (int i = 0; i < element.getChildCount(); i++) {
       if (element.getChildType(i) == Element.ELEMENT) {
-        reset(element.getElement(i), name);
+        reset(element.getElement(i));
       }
     }
   }
   
-  static void readValues(Element element, Map<String, String> result) {
+  static void resetRadioGroup(Element element, String name) {
+    if (element.nativeView instanceof RadioButton && 
+        name.equals(element.getAttributeValue("name"))) {
+        ((RadioButton) element.nativeView).setChecked(false);
+    }
+    for (int i = 0; i < element.getChildCount(); i++) {
+      if (element.getChildType(i) == Element.ELEMENT) {
+        resetRadioGroup(element.getElement(i), name);
+      }
+    }
+  }
+  
+  static void readValues(Element element, List<Map.Entry<String, String>> result) {
     if (element.nativeView != null) {
       ((NativeElementView) element.nativeView.getParent()).readValue(result);
     } else if ("input".equals(element.getName())) {
@@ -116,34 +165,42 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
    * If name is null, reset this view to the state specified in the DOM.
    * Otherwise, if the name matches, reset to unchecked.
    */
-  void reset(String name) {
-    if (name == null || name.equals(element.getAttributeValue("name"))) {
-      if (nativeView instanceof Checkable) {
-        ((Checkable) nativeView).setChecked(name == null && 
-            element.getAttributeValue("checked") != null);
-      } else if (nativeView instanceof EditText) {
-        EditText editText = (EditText) nativeView;
-        if (element.getName().equals("textarea")) {
-          editText.setText(element.getText());
-        } else {
-          editText.setText(element.getAttributeValue("value"));
-        }
+  void reset() {
+    if (nativeView instanceof Checkable) {
+      ((Checkable) nativeView).setChecked(element.getAttributeValue("checked") != null);
+    } else if (nativeView instanceof EditText) {
+      EditText editText = (EditText) nativeView;
+      if (element.getName().equals("textarea")) {
+        editText.setText(element.getText());
+      } else {
+        editText.setText(element.getAttributeValue("value"));
       }
-      invalidate();
+    } else if (nativeView instanceof AdapterView<?>) {
+      Object adapter = ((AdapterView<?>) nativeView).getAdapter();
+      if (adapter instanceof SelectAdapter) {
+        SelectAdapter select = (SelectAdapter) adapter;
+        select.reset();
+      }
     }
+    invalidate();
   }
 
   /**
    * If this view has an input value, set it in the given map.
    */
-  void readValue(Map<String,String> result) {
+  void readValue(List<Map.Entry<String,String>> result) {
     String name = element.getAttributeValue("name");
     if (name != null) {
       if (nativeView instanceof Checkable && ((Checkable) nativeView).isChecked()) {
         String value = element.getAttributeValue("value");
-        result.put(name, value == null ? "" : value);
+        addEntry(result, name, value == null ? "" : value);
       } else if (nativeView instanceof EditText) {
-        result.put(name, ((EditText) nativeView).getText().toString());
+        addEntry(result, name, ((EditText) nativeView).getText().toString());
+      } else if (nativeView instanceof AdapterView<?>) {
+        Object adapter = ((AdapterView<?>) nativeView).getAdapter();
+        if (adapter instanceof SelectAdapter) {
+          ((SelectAdapter) adapter).readValue(result);
+        }
       }
     }
   }
@@ -219,15 +276,20 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
       Element form = findForm(element);
       if (form != null) {
         if ("reset".equals(type)) {
-          reset(form, null);
+          reset(form);
         } else if ("submit".equals(type)) {
-          HashMap<String,String> formData = new HashMap<String,String>();
+          List<Map.Entry<String,String>> formData = new ArrayList<Map.Entry<String,String>>();
+          String name = element.getAttributeValue("name");
+          String value = element.getAttributeValue("value");
+          if (name != null && value != null) {
+            addEntry(formData, name, value);
+          }
           readValues(form, formData);
           element.htmlView.requestHandler.submitForm(element.htmlView, element, null, false, formData);
         } else if ("radio".equals(type)) {
           String name = element.getAttributeValue("name");
           if (name != null) {
-            reset(form, name);
+            resetRadioGroup(form, name);
           }
           ((Checkable) nativeView).setChecked(true);
         }
@@ -235,4 +297,157 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
     }
   }
 
+  static class SelectAdapter extends ArrayAdapter<Element> {
+    BitSet selected;
+    boolean multiple;
+    ListView listView;
+    Spinner spinner;
+    Element select;
+    private int width;
+    // Why is this class parameterized in the first place?
+    AdapterView view;
+    // Needed because notifyDataSetChanged does not work as expected, see below.
+    List<View> knownViews = new ArrayList<View>();
+    
+    SelectAdapter(Context context, Element select, boolean multiple, ArrayList<Element> options) {
+      super(context, android.R.layout.simple_list_item_1, options);
+      this.multiple = multiple;
+      if (multiple) {
+        this.listView = new ListView(context);
+        this.listView.setAdapter(this);
+        this.view = listView;
+        selected = new BitSet();
+      } else {
+        this.spinner = new Spinner(context);
+        this.spinner.setAdapter(this);
+        this.view = spinner;
+      }
+      this.select = select;
+    }
+
+    void readValue(List<Map.Entry<String, String>> result) {
+      if (multiple) {
+        for (int i = 0; i < getCount(); i++) {
+          if (selected.get(i)) {
+            readOptionValue(getItem(i), select.getAttributeValue("name"), result);
+          }
+        }
+      } else {
+        if (spinner.getSelectedItemPosition() >= 0) {
+          readOptionValue(getItem(spinner.getSelectedItemPosition()), 
+              select.getAttributeValue("name"),result);
+        }
+      }
+    }
+
+    private void readOptionValue(Element option, String name, List<Map.Entry<String, String>> result) {
+      String value = option.getAttributeValue("value");
+      addEntry(result, name, value == null ? option.getText() : value);
+    }
+
+    @Override
+    public View getDropDownView(final int position, View reuse, final ViewGroup parent) {
+      // TODO: Why is this nonsense needed :((
+      TextView tv = reuse instanceof TextView ? (TextView) reuse : new TextView(getContext()) {
+        public boolean onTouchEvent (MotionEvent event) {
+          spinner.setSelection(position, true);
+          return super.onTouchEvent(event);
+        }
+      };
+      tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, select.getScaledPx(Style.FONT_SIZE));
+      tv.setText(getItem(position).getText());
+      int ts = (int) tv.getTextSize();
+      tv.setPadding(ts / 4, ts / 2, ts / 4, ts / 2);
+      return tv;
+    }
+
+    @Override
+    public View getView(final int position, View reuse, final ViewGroup group) {
+      TextView tv = reuse instanceof TextView ? (TextView) reuse : new TextView(getContext());
+      tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, select.getScaledPx(Style.FONT_SIZE));
+      tv.setText(getItem(position).getText());
+      if (multiple) {
+        while (knownViews.size() <= position) {
+          knownViews.add(null);
+        }
+        knownViews.set(position, tv);
+        int ts = (int) tv.getTextSize();
+        tv.setPadding(ts / 4, ts / 2, ts / 4, ts / 2);
+        tv.setOnClickListener(new OnClickListener() {
+          @Override
+          public void onClick(View v) {
+            selected.set(position, !selected.get(position));
+            applySelection(v, position);
+          }
+        }); 
+      }
+      return tv;
+    }
+
+    // This should not be needed, but notifyDataSetChanged does not really work as
+    // expected...
+    public void applySelection(View v, int position) {
+      v.setBackgroundColor(selected.get(position) ? 0xff8888ff : 0);
+      v.invalidate();
+    }
+
+    public void reset() {
+      if (multiple) {
+        selected.clear();
+      } else {
+        spinner.setSelection(0, true);
+      }
+      width = 0;
+      for (int i = 0; i < getCount(); i++) {
+        Element option = getItem(i);
+        String text = option.getText();
+        int wi = HtmlUtils.measureText(select.getFont(), text, 0, text.length());
+        if (wi > width) {
+          width = wi;
+        }
+        
+        if (option.getAttributeBoolean("selected")) {
+          if (multiple) {
+            selected.set(getCount());
+          } else {
+            spinner.setSelection(i, true);
+          }
+        }
+      }
+      notifyDataSetChanged();
+      // Sad... :(
+      // view.setAdapter (recommended on stackOverflow) hides the list.
+      if (multiple) {
+        for (int i = 0; i < knownViews.size(); i++) {
+          View v = knownViews.get(i);
+          if (v != null) {
+            applySelection(v, i);
+          }
+        }
+      }
+    }
+  }
+  
+  static void addEntry(List<Map.Entry<String,String>> result, final String key, final String value) {
+    result.add(new Map.Entry<String,String>() {
+      @Override
+      public String getKey() {
+        return key;
+      }
+
+      @Override
+      public String getValue() {
+        return value;
+      }
+
+      @Override 
+      public String toString() {
+        return key + '=' + value;
+      }
+      @Override
+      public String setValue(String object) {
+        throw new UnsupportedOperationException();
+      }});
+  }
+  
 }
