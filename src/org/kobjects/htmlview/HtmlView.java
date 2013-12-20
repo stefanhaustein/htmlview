@@ -39,11 +39,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewParent;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
 /**
@@ -150,13 +148,13 @@ public class HtmlView extends BlockElementView  {
   }
   
   public void loadUrl(String url) {
-    loadAsync(ASSET_BASE_URL.resolve(url), Onload.SHOW_HTML);
+    loadAsync(ASSET_BASE_URL.resolve(url), null, Onload.SHOW_HTML);
   }
 
   /**
    * This method expects that the URI is absolute.
    */
-  public void loadAsync(final URI uri, final Onload onload) {
+  public void loadAsync(final URI uri, final byte[] post, final Onload onload) {
     new AsyncTask<Void, Integer, Exception>() {
       String encoding;
       byte[] rawData;
@@ -176,6 +174,10 @@ public class HtmlView extends BlockElementView  {
             publishProgress(RequestHandler.ProgressType.CONNECTING.ordinal(), 0);
             URLConnection con = uri.toURL().openConnection();
             con.setRequestProperty("UserAgent", "AndroidHtmlView/1.0 (Mobile)");
+            if (post != null) {
+              con.setDoOutput(true);
+              con.getOutputStream().write(post);
+            }
             is = con.getInputStream();
             encoding = "ISO-8859-1";  // As per HTTP spec.
             String contentType = con.getContentType();

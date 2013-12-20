@@ -14,7 +14,9 @@
 
 package org.kobjects.htmlview;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
@@ -47,13 +49,17 @@ public class DefaultRequestHandler implements RequestHandler {
     this.log = log;
   }
 
+  /** 
+   * Opens the link in the same htmlview if it is a file URL and does
+   * not have a target assigned. Otherwise, a web intent is started.
+   */
   @Override
   public void openLink(HtmlView htmlView, Element a, URI href) {
     if (log) {
       Log.d(LOG_TAG, "onOpenLink  " + a + " " + HtmlUtils.toString(href));
     }
-    if ("_htmlview".equals(a.getAttributeValue("target"))) {
-      htmlView.loadAsync(href, HtmlView.Onload.SHOW_HTML);
+    if (a.getAttributeValue("target") != null || !"file".equals(href.getScheme())) {
+      htmlView.loadAsync(href, null, HtmlView.Onload.SHOW_HTML);
     } else {
       Intent intent = new Intent(Intent.ACTION_VIEW);
       intent.setData(Uri.parse(HtmlUtils.toString(href)));
@@ -67,6 +73,29 @@ public class DefaultRequestHandler implements RequestHandler {
     if (log) {
       Log.d(LOG_TAG, "onSubmitForm " + form + " " + HtmlUtils.toString(uri) + " " + formData);
     }
+    
+    StringBuilder sb = new StringBuilder();
+    try {
+      for (Map.Entry<String, String> entry: formData) {
+        if (sb.length() > 0) {
+          sb.append('&');
+        }
+        // TODO(haustein): ASCII-Encode for safety?
+        sb.append(URLEncoder.encode(entry.getKey(), HtmlUtils.UTF8));
+        sb.append('=');
+        sb.append(URLEncoder.encode(entry.getValue(), HtmlUtils.UTF8));
+      }
+      byte[] postData = null;
+      if (post) {
+        postData = sb.toString().getBytes(HtmlUtils.UTF8);
+      } else {
+        uri = uri.resolve("?" + sb.toString());
+      }
+      htmlView.loadAsync(uri, postData, Onload.SHOW_HTML);
+    } catch(UnsupportedEncodingException e) {
+      // Should be impossible, as UTF8 is mandatory
+      Log.e(LOG_TAG, "Error encoding form data", e);
+    }
   }
 
   @Override
@@ -74,7 +103,7 @@ public class DefaultRequestHandler implements RequestHandler {
     if (log) {
       Log.d(LOG_TAG, "onRequestImage " + HtmlUtils.toString(uri));
     }
-    htmlView.loadAsync(uri, HtmlView.Onload.ADD_IMAGE);
+    htmlView.loadAsync(uri, null, HtmlView.Onload.ADD_IMAGE);
   }
 
   @Override
@@ -82,7 +111,7 @@ public class DefaultRequestHandler implements RequestHandler {
     if (log) {
       Log.d(LOG_TAG, "requestStyleSheet " + HtmlUtils.toString(uri));
     }
-    htmlView.loadAsync(uri, HtmlView.Onload.ADD_STYLE_SHEET);
+    htmlView.loadAsync(uri, null, HtmlView.Onload.ADD_STYLE_SHEET);
   }
 
   @Override
