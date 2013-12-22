@@ -1,5 +1,6 @@
 package org.kobjects.htmlview;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -285,7 +286,16 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
             addEntry(formData, name, value);
           }
           readValues(form, formData);
-          element.htmlView.requestHandler.submitForm(element.htmlView, element, null, false, formData);
+          URI uri = element.htmlView.getBaseUrl();
+          String action = element.getAttributeValue("action");
+          if (action != null) {
+            uri = uri.resolve(action);
+          } 
+          String method = element.getAttributeValue("method");
+          if (method == null) {
+            method = "get";
+          }
+          element.htmlView.requestHandler.submitForm(element.htmlView, element, uri, "post".equalsIgnoreCase(method), formData);
         } else if ("radio".equals(type)) {
           String name = element.getAttributeValue("name");
           if (name != null) {
