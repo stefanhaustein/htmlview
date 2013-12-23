@@ -56,9 +56,11 @@ public class DefaultRequestHandler implements RequestHandler {
   @Override
   public void openLink(HtmlView htmlView, Element a, URI href) {
     if (log) {
-      Log.d(LOG_TAG, "onOpenLink  " + a + " " + HtmlUtils.toString(href));
+      Log.d(LOG_TAG, "onOpenLink  " + a + " " + HtmlUtils.toString(href) + "scheme: " +href.getScheme());
     }
-    if (a.getAttributeValue("target") != null || !"file".equals(href.getScheme())) {
+   
+    if (a.getAttributeValue("target") == null || "_htmlview".equals(a.getAttributeValue("target"))  || 
+        !"file".equals(href.getScheme())) {
       htmlView.loadAsync(href, null, HtmlView.Onload.SHOW_HTML);
     } else {
       Intent intent = new Intent(Intent.ACTION_VIEW);

@@ -145,13 +145,17 @@ class BlockElementView extends AbstractElementView {
       // ignore
     } else if (display == Style.TABLE || display == Style.INLINE_TABLE) { 
       children.add(new TableElementView(getContext(), child));
-    } else if ("textarea".equals(name) ||
-        ("input".equals(name) && !"hidden".equals(child.getAttributeValue("type"))) ||
-        ("select".equals(name))) {
-      children.add(NativeElementView.createInput(getContext(), child));
     } else if ("img".equals(name)) {
       buildContext.preserveLeadingSpace = true;
       children.add(NativeElementView.createImg(getContext(), child));
+    } else if ("include".equals(name)){
+      children.add(NativeElementView.createInclude(getContext(), child));
+    } else if ("input".equals(name)) {
+      children.add(NativeElementView.createInput(getContext(), child));
+    } else if ("textarea".equals(name)) {
+      children.add(NativeElementView.createTextArea(getContext(), child));
+    } else if ("select".equals(name)) {
+      children.add(NativeElementView.createSelect(getContext(), child));
     } else {
       if (style.isBlock(false)) {
         children.add(new BlockElementView(getContext(), child, buildContext));

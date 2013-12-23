@@ -31,7 +31,6 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.util.Log;
 import android.view.View;
 
 
@@ -784,7 +783,6 @@ public class Element implements org.kobjects.css.StylableElement {
     if (this.fontCache == null) {
       this.fontCache = new Paint();
       this.fontCache.setTextSize(getScaledPx(Style.FONT_SIZE));
-      Log.d("HtmlView", "TextSize: " + getScaledPx(Style.FONT_SIZE) + " typeface: " + Typeface.DEFAULT);
       int style = computedStyle.getRaw(Style.FONT_WEIGHT) >= Style.BOLD ? Typeface.BOLD : Typeface.NORMAL;
       switch (computedStyle.getEnum(Style.FONT_STYLE)) {
       case Style.ITALIC: 

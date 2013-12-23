@@ -8,12 +8,15 @@ import java.util.Map;
 
 import org.kobjects.css.Style;
 
+import android.app.Activity;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.text.InputType;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,11 +35,12 @@ import android.widget.TextView;
 /**
  * Wraps a "regular" android view with HTML margins, padding and borders. 
  */
+@SuppressLint("ViewConstructor")
 class NativeElementView extends AbstractElementView implements View.OnClickListener {
 
   private View nativeView;
 
-  
+
   static NativeElementView createImg(Context context, Element child) {
     // TODO: Focus / click handling for buttons in a link?
     ImageView imageView = new ImageView(context);
@@ -53,64 +57,37 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
     return wrapper;
   }
 
+
+  public static View createInclude(Context context, Element element) {
+    String layoutName = element.getAttributeValue("layout");
+    int lid = context.getResources().getIdentifier(layoutName, "layout", context.getPackageName());
+    LayoutInflater li = LayoutInflater.from(context);
+    View view = li.inflate(lid, null);
+    return new NativeElementView(context, element, false, view);
+  }
+
+
   static NativeElementView createInput(final Context context, final Element element) {
-    String name = element.getName();
     View content = null; // null should not be necessary 
     int textSize = element.getScaledPx(Style.FONT_SIZE);
-    if ("textarea".equals(name)) {
+    String type = element.getAttributeValue("type");
+    if ("checkbox".equals(type)) {
+      content = new CheckBox(context);
+    } else if ("radio".equals(type)) {
+      content = new RadioButton(context);
+    } else if ("submit".equals(type) || "reset".equals(type)) {
+      String value = element.getAttributeValue("value");
+      Button button = new Button(context);
+      button.setText(value == null ? type : value);
+      button.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+      content = button;
+    } else {
       EditText editText = new EditText(context);
-      editText.setSingleLine(false);
+      if ("password".equals(type)) {
+        editText.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
+      }
       editText.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
-      editText.setGravity(Gravity.TOP);
-      // TODO: Calculate lines based on height if fixed.
-      editText.setLines(element.getAttributeInt("rows", 2));
-      editText.setVerticalScrollBarEnabled(true);
-      LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT);
-      editText.setLayoutParams(params);
       content = editText;
-    } else if ("select".equals(name)) {
-      boolean multiple = element.getAttributeBoolean("multiple");
-      ArrayList<Element> options = new ArrayList<Element>();
-      for (int i = 0; i < element.getChildCount(); i++) {
-        if (element.getChildType(i) == Element.ELEMENT) {
-          Element child = element.getElement(i);
-          if (child.getName().equals("option")) {
-            options.add(child);
-          }
-        }
-      }
-      SelectAdapter adapter = new SelectAdapter(context, element, multiple, options);
-      content = adapter.view;
-      adapter.reset(); // needed here: performs measurement
-      content.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
-     
-      if (!element.getComputedStyle().isSet(Style.WIDTH)) {
-        element.getComputedStyle().set(Style.WIDTH, Math.round(
-            (adapter.width + content.getMeasuredWidth()) * 1000 / element.htmlView.pixelScale), Style.PX);
-      } if (!element.getComputedStyle().isSet(Style.HEIGHT)) {
-        element.getComputedStyle().set(Style.HEIGHT, Math.round(element.getFont().getFontMetricsInt(null) * 
-            (1 + element.getAttributeInt("size", 1) * 2000 / element.htmlView.pixelScale)), Style.PX);
-      }
-    } else { // input
-      String type = element.getAttributeValue("type");
-      if ("checkbox".equals(type)) {
-        content = new CheckBox(context);
-      } else if ("radio".equals(type)) {
-        content = new RadioButton(context);
-      } else if ("submit".equals(type) || "reset".equals(type)) {
-        String value = element.getAttributeValue("value");
-        Button button = new Button(context);
-        button.setText(value == null ? type : value);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
-        content = button;
-      } else {
-        EditText editText = new EditText(context);
-        if ("password".equals(type)) {
-          editText.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        }
-        editText.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
-        content = editText;
-      }
     }
     NativeElementView result = new NativeElementView(context, element, false, content);
     if (content instanceof Button) {
@@ -119,6 +96,51 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
     result.reset();
     return result;
   }
+  
+  
+
+  static NativeElementView createSelect(final Context context, final Element element) {
+    boolean multiple = element.getAttributeBoolean("multiple");
+    ArrayList<Element> options = new ArrayList<Element>();
+    for (int i = 0; i < element.getChildCount(); i++) {
+      if (element.getChildType(i) == Element.ELEMENT) {
+        Element child = element.getElement(i);
+        if (child.getName().equals("option")) {
+          options.add(child);
+        }
+      }
+    }
+    SelectAdapter adapter = new SelectAdapter(context, element, multiple, options);
+    adapter.reset(); // needed here: performs measurement
+    adapter.view.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
+     
+    if (!element.getComputedStyle().isSet(Style.WIDTH)) {
+      element.getComputedStyle().set(Style.WIDTH, Math.round(
+          (adapter.width + adapter.view.getMeasuredWidth()) * 1000 / element.htmlView.pixelScale), Style.PX);
+    } if (!element.getComputedStyle().isSet(Style.HEIGHT)) {
+      element.getComputedStyle().set(Style.HEIGHT, Math.round(element.getFont().getFontMetricsInt(null) * 
+          (1 + element.getAttributeInt("size", 1) * 2000 / element.htmlView.pixelScale)), Style.PX);
+    }
+    return new NativeElementView(context, element, false, adapter.view);
+  }
+  
+  
+  static NativeElementView createTextArea(final Context context, final Element element) {
+    int textSize = element.getScaledPx(Style.FONT_SIZE);
+    EditText editText = new EditText(context);
+    editText.setSingleLine(false);
+    editText.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+    editText.setGravity(Gravity.TOP);
+    // TODO: Calculate lines based on height if fixed.
+    editText.setLines(element.getAttributeInt("rows", 2));
+    editText.setVerticalScrollBarEnabled(true);
+    LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT);
+    editText.setLayoutParams(params);
+    NativeElementView result = new NativeElementView(context, element, false, editText);
+    result.reset();
+    return result;
+  }
+
   
   static void reset(Element element) {
     if (element.nativeView != null) {
@@ -314,7 +336,8 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
     Spinner spinner;
     Element select;
     private int width;
-    // Why is this class parameterized in the first place?
+    // Why is AdapterView parameterized in the first place?
+    @SuppressWarnings("rawtypes")
     AdapterView view;
     // Needed because notifyDataSetChanged does not work as expected, see below.
     List<View> knownViews = new ArrayList<View>();
@@ -459,5 +482,5 @@ class NativeElementView extends AbstractElementView implements View.OnClickListe
         throw new UnsupportedOperationException();
       }});
   }
-  
+
 }
