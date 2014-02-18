@@ -50,10 +50,6 @@ import android.widget.TextView;
  * then constructs a physical View representation, consisting of BlockWidget,
  * InputWidget, TableWidget and TextFragmentWidget.
  * 
- * Support for input elements and CSS can be switched off using ConfigSettings
- * (HTML_DISABLE_INPUT and HTML_DISABLE_CSS) to reduce the memory footprint of
- * this component.
- * 
  * @author Stefan Haustein
  */
 public class HtmlView extends BlockElementView  {
@@ -209,11 +205,9 @@ public class HtmlView extends BlockElementView  {
           publishProgress(RequestHandler.ProgressType.DONE.ordinal(), 0);
           rawData = baos.toByteArray();
           baos = null;
-          switch(onload) {
-          case ADD_IMAGE:
+          if (onload == Onload.ADD_IMAGE) {
             image = BitmapFactory.decodeByteArray(rawData, 0, rawData.length);
             rawData = null;
-            break;
           }
           return null;
         } catch (Exception e) {
@@ -344,7 +338,7 @@ public class HtmlView extends BlockElementView  {
       throw new RuntimeException(e);
     } 
 
-    // Remove reference to thel dummy element that was created to simplify parsing
+    // Remove reference to the dummy element that was created to simplify parsing
     htmlElement.setParent(null);
 
     // Apply the default style sheet and style info collected while building
