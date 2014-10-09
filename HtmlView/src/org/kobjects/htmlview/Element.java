@@ -781,7 +781,7 @@ public class Element implements org.kobjects.css.StylableElement {
 
   public Paint getFont() {
     if (this.fontCache == null) {
-      this.fontCache = new Paint();
+      this.fontCache = new Paint(Paint.ANTI_ALIAS_FLAG);
       this.fontCache.setTextSize(getScaledPx(Style.FONT_SIZE));
       int style = computedStyle.getRaw(Style.FONT_WEIGHT) >= Style.BOLD ? Typeface.BOLD : Typeface.NORMAL;
       switch (computedStyle.getEnum(Style.FONT_STYLE)) {
