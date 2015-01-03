@@ -7,6 +7,6 @@ If you need more HTML formatting than TextView, but a WebView is too much or too
 
 The HtmlViewDemo project illustrates how to use the HtmlView component.
 
-![Demo Screenshot](https://googledrive.com/host/0B0Y6LqaBUwT3SFpTTlR6UVc3WFU/htmlview_scaled.png)
+![Demo Screenshot](https://lh3.googleusercontent.com/_TdVGbIxULBasSVRCAZT-3fYg6czvCrDNm5K-RkPvenkQykE3gwUpN6ZDCd2s9XViPagXOPg6Zw=w1435-h1050)
 
 
