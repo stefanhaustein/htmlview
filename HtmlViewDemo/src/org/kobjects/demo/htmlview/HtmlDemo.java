@@ -41,6 +41,7 @@ public class HtmlDemo extends Activity {
     htmlView = new HtmlView(this);
     linearLayout.addView(htmlView);
     scrollView.addView(linearLayout);
+    scrollView.setBackgroundColor(0x0ffffffff);
     setContentView(scrollView);
     loadDemo();
   }
