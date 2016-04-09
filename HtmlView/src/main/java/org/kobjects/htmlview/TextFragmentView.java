@@ -105,6 +105,12 @@ class TextFragmentView extends View implements HasMeasuredPosition {
 
     int availableWidth = borders.getHorizontalSpace(fontHeight);
 
+    int vAlign = element.getComputedStyle().getEnum(Style.VERTICAL_ALIGN);
+    if (vAlign == Style.SUB || vAlign == Style.SUPER) {
+      font = new Paint(font);
+      font.setTextSize(font.getTextSize() * 3 / 4);
+    }
+
     // breakpos invalid?
     if (breakPos == -1) {
       breakPos = Math.max(0, 
@@ -194,7 +200,16 @@ class TextFragmentView extends View implements HasMeasuredPosition {
     }
     boolean focus = element.isFocused();
     int ascent = -font.getFontMetricsInt().ascent;
-    
+
+    int vAlign = element.getComputedStyle().getEnum(Style.VERTICAL_ALIGN);
+    if (vAlign == Style.SUB || vAlign == Style.SUPER) {
+      font = new Paint(font);
+      float size = font.getTextSize();
+      font.setTextSize(size * 3 / 4);
+      dy += vAlign == Style.SUB ? size/4 : -size/4;
+    }
+
+
     if (indices == null) {
       // TODO: Draw focus!
    /*   if (focus) {
@@ -234,7 +249,7 @@ class TextFragmentView extends View implements HasMeasuredPosition {
         } 
       }
     }
-    
+
     /*
     if (htmlView.debug == this) {
       g.setColor(0x00ff00);

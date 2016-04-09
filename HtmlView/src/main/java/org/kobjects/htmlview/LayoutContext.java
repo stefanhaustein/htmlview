@@ -371,8 +371,10 @@ class LayoutContext {
         return 0;
       case Style.BOTTOM:
         return space;
-      default:
+      case Style.MIDDLE:
         return space / 2;
+      default: // HACK
+        return space * 7 / 8;
     }
   }
 }

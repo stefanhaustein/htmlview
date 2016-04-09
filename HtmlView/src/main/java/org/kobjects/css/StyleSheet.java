@@ -218,7 +218,10 @@ public class StyleSheet {
     s.put("script", new Style().set(Style.DISPLAY, Style.NONE, Style.ENUM));
     s.put("strong", new Style().set(Style.FONT_WEIGHT, Style.BOLD, Style.ENUM));
     s.put("style", new Style().set(Style.DISPLAY, Style.NONE, Style.ENUM));
-    
+
+    s.put("sup", new Style().set(Style.VERTICAL_ALIGN, Style.SUPER, Style.ENUM));
+    s.put("sub", new Style().set(Style.VERTICAL_ALIGN, Style.SUB, Style.ENUM));
+
     s.put("table", new Style().set(Style.DISPLAY, Style.TABLE, Style.ENUM).
         set(Style.CLEAR, Style.BOTH, Style.ENUM));
     s.put("td", new Style().set(Style.DISPLAY, Style.TABLE_CELL, Style.ENUM).
