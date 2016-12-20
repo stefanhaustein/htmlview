@@ -1,7 +1,7 @@
 htmlview
 ========
 
-**Note**: [HtmlView2](https://github.com/stefanhaustein/HtmlView2) is nearing completion. Give it a try!
+**Note**: Please use [HtmlView2](https://github.com/stefanhaustein/HtmlView2) instead!
 
 
 This project is a port of the Google "MiniJoe" CLDC / MIDP HTML renderer to Android.
