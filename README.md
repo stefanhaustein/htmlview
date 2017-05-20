@@ -1,7 +1,7 @@
 htmlview
 ========
 
-**Note**: Please use [HtmlView2](https://github.com/stefanhaustein/HtmlView2) instead!
+**Note**: Please use [nativehtml](https://github.com/stefanhaustein/nativehtml) instead!
 
 
 This project is a port of the Google "MiniJoe" CLDC / MIDP HTML renderer to Android.
@@ -10,6 +10,5 @@ If you need more HTML formatting than TextView, but a WebView is too much or too
 
 The HtmlViewDemo project illustrates how to use the HtmlView component.
 
-![Demo Screenshot](https://lh4.googleusercontent.com/-C8ogYMRhXr0/VKrNFYzQSOI/AAAAAAAAXC0/tPe0AiBh7iA/s2048/htmlview_scaled_watch.png)
 
 
